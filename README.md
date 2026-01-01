@@ -40,26 +40,6 @@ npm install
 
 ---
 
-## Lancement de la stack
-
-### 1. Lancer le backend
-Dans le dossier `backend` :
-```bash
-npm start
-```
-
-Le backend sera accessible à l'adresse indiquée dans la console (par défaut : `http://localhost:3000`).
-
-### 2. Lancer le frontend
-Dans le dossier `frontend` :
-```bash
-npm run dev
-```
-
-Le frontend sera accessible à l'adresse indiquée dans la console (par défaut : `http://localhost:5173`).
-
----
-
 ## Création de la base de données
 
 1. Assurez-vous que votre serveur MariaDB est en cours d'exécution.
@@ -97,3 +77,23 @@ Il est possible que la commande `mysql` ne fonctionne pas. Ajoutez le chemin ver
 ---
 
 Vous êtes maintenant prêt à utiliser le projet !  
+
+## Lancement de la stack
+
+### 1. Lancer le backend
+Dans le dossier `backend` :
+```bash
+npm start
+```
+
+Le backend sera accessible à l'adresse indiquée dans la console (par défaut : `http://localhost:3000`).
+
+### 2. Lancer le frontend
+Dans le dossier `frontend` :
+```bash
+npm run dev
+```
+
+Le frontend sera accessible à l'adresse indiquée dans la console (par défaut : `http://localhost:5173`).
+
+---
