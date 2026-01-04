@@ -13,5 +13,6 @@ app.get("/", (req, res) => {
   res.json({ message: "Backend actif" });
 });
 
-const PORT = 3000;
-app.listen(PORT, () => console.log(`Backend écoute sur ${PORT}`));
+const PORT = process.env.PORT || 3000;
+const HOST = process.env.HOST || '0.0.0.0';
+app.listen(PORT, HOST, () => console.log(`Backend écoute sur ${HOST}:${PORT}`));
