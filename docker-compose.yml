@@ -1,0 +1,54 @@
+services:
+  backend:
+    image: dmarcil88/backend-si-app
+    container_name: backend-si-app
+    ports: 
+      - "3000:3000"
+    environment:
+      DB_HOST: database
+      DB_USER: root
+      DB_PASSWORD: root
+      DB_NAME: tasksdb
+      PORT: 3000
+      HOST: 0.0.0.0
+    networks:
+      - proxy
+    depends_on:
+      - database
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.backend.rule=Host(`backend.si-app.localhost`)"
+      - "traefik.http.routers.backend.entrypoints=web"
+      - "traefik.http.services.tasklist-backend.loadbalancer.server.port=3000"
+
+  frontend:
+    image: dmarcil88/frontend-si-app
+    container_name: frontend-si-app
+    ports: 
+      - "8080:8080"
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=Host(`frontend.si-app.localhost`)"
+      - "traefik.http.routers.frontend.entrypoints=web"
+      - "traefik.http.services.tasklist-frontend.loadbalancer.server.port=8080"
+  database:
+    image: dmarcil88/database-si-app
+    container_name: database-si-app
+    ports: 
+      - "3306:3306"
+    environment:
+      MARIADB_ROOT_PASSWORD: root
+      MARIADB_DATABASE: taskdb
+    volumes:
+      - ./db-data:/var/lib/mysql
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=false"
+
+networks :
+  proxy:
+    external: true
+    driver: bridge
