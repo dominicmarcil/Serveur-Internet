@@ -1,0 +1,7 @@
+[SSH-SI]
+enabled = true
+filter = sshd
+logpath = /var/log/secure
+maxretry = 5
+bantime = 3600
+findtime = 600

@@ -1,0 +1,72 @@
+services:
+  traefik:
+      image: ${TRAEFIK_IMAGE}
+      container_name: ${TRAEFIK_CONTAINER}
+      restart: unless-stopped
+      security_opt:
+        - no-new-privileges:true
+      networks:
+        - proxy
+      command:
+        - "--providers.docker=true"
+        - "--providers.docker.exposedbydefault=false"
+        - "--providers.docker.network=proxy"
+        - "--providers.file.directory=/dynamic"
+        - "--providers.file.watch=true"
+        - "--entryPoints.web.address=:80"
+        - "--entryPoints.websecure.address=:443"      
+        - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+        - "--entrypoints.web.http.redirections.entrypoint.scheme=https"  
+        - "--api.dashboard=true"
+        - "--api.insecure=true"
+      
+      ports:
+        - "${TRAEFIK_WEB_PORT}:${TRAEFIK_WEB_PORT}"
+        - "${TRAEFIK_WEBSECURE_PORT}:${TRAEFIK_WEBSECURE_PORT}"
+      volumes:
+        - "/var/run/docker.sock:/var/run/docker.sock:ro"
+        - "/etc/letsencrypt:/etc/letsencrypt:ro"
+        - "./dynamic:/dynamic:ro"
+
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.traefik.rule=Host(`${TRAEFIK_HOST}`) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))"
+        - "traefik.http.routers.traefik.entrypoints=${TRAEFIK_ENTRYPOINTS}"
+        - "traefik.http.routers.traefik.tls=${TRAEFIK_TLS}"
+        - "traefik.http.routers.traefik.service=api@internal"
+        - "traefik.http.routers.traefik.middlewares=${TRAEFIK_MIDDLEWARE}"
+  tinyauth:
+    image: ${TINYAUTH_IMAGE}
+    container_name: ${TINYAUTH_CONTAINER}
+    restart: unless-stopped
+
+    volumes:
+      - ./data:/data
+
+    networks:
+      - proxy
+
+    environment:
+      APP_URL: ${TINYAUTH_APP_URL}
+
+      USERS: ${TINYAUTH_USERS}
+
+      PROVIDERS_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      PROVIDERS_GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+
+      OAUTH_WHITELIST: ${OAUTH_WHITELIST}
+
+    labels:
+      - "traefik.enable=true"
+
+      # Router HTTPS
+      - "traefik.http.routers.tinyauth.rule=Host(`${TINYAUTH_HOST}`)"
+      - "traefik.http.routers.tinyauth.entrypoints=${TRAEFIK_ENTRYPOINTS}"
+      - "traefik.http.routers.tinyauth.tls=${TRAEFIK_TLS}"
+      # Port interne de Tinyauth
+      - "traefik.http.services.tinyauth.loadbalancer.server.port=${TINYAUTH_PORT}"
+
+      - "traefik.http.middlewares.tinyauth.forwardauth.address=http://${TINYAUTH_CONTAINER}:${TINYAUTH_PORT}/api/auth/traefik"
+networks:
+  proxy:
+    external: true

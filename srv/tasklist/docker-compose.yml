@@ -1,0 +1,52 @@
+services:
+  backend:
+    image: ${BACKEND_IMAGE}
+    container_name: ${BACKEND_CONTAINER}
+    ports: 
+      - "${BACKEND_HOST_PORT}:${BACKEND_PORT}"
+    environment:
+      DB_HOST: ${DB_HOST}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      PORT: ${BACKEND_PORT}
+      HOST: ${BACKEND_HOST}
+    networks:
+      - proxy
+    depends_on:
+      - database
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.backend.rule=Host(`${TASKLIST_HOST}`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.backend.entrypoints=${TRAEFIK_ENTRYPOINTS}"
+      - "traefik.http.routers.backend.tls=${TRAEFIK_TLS}"
+      - "traefik.http.services.backend.loadbalancer.server.port=${BACKEND_PORT}"
+
+  frontend:
+    image: ${FRONTEND_IMAGE}
+    container_name: ${FRONTEND_CONTAINER}
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.tasklist.rule=Host(`${TASKLIST_HOST}`)"
+      - "traefik.http.routers.tasklist.entrypoints=${TRAEFIK_ENTRYPOINTS}"
+      - "traefik.http.routers.tasklist.tls=${TRAEFIK_TLS}"
+      - "traefik.http.services.tasklist.loadbalancer.server.port=${FRONTEND_PORT}"
+      - "traefik.http.routers.tasklist.middlewares=${TASKLIST_MIDDLEWARE}"
+  database:
+    image: ${DATABASE_IMAGE}
+    container_name: ${DATABASE_CONTAINER}
+    ports: 
+      - "${DATABASE_HOST_PORT}:${DATABASE_PORT}"
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
+      MARIADB_DATABASE: ${MARIADB_DATABASE}
+    volumes:
+      - ./db-data:/var/lib/mysql
+    networks:
+      - proxy
+networks :
+  proxy:
+    external: true
+    driver: bridge

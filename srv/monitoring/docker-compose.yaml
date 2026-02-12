@@ -1,0 +1,27 @@
+services:
+  uptime:
+    image: ${UPTIME_IMAGE}
+    restart: unless-stopped
+    volumes:
+      - ./data:/app/data
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+
+      - "traefik.http.routers.uptime-public.rule=Host(`${UPTIME_HOST}`) && (PathPrefix(`/status`) || PathPrefix(`/assets`) || PathPrefix(`/api/status`) || Path(`/favicon.ico`))"
+      - "traefik.http.routers.uptime-public.entrypoints=${TRAEFIK_ENTRYPOINTS}"
+      - "traefik.http.routers.uptime-public.tls=${TRAEFIK_TLS}"
+      - "traefik.http.routers.uptime-public.service=uptime"
+
+      - "traefik.http.routers.uptime-private.rule=Host(`${UPTIME_HOST}`)"
+      - "traefik.http.routers.uptime-private.middlewares=${UPTIME_PRIVATE_MIDDLEWARE}"
+      - "traefik.http.routers.uptime-private.entrypoints=${TRAEFIK_ENTRYPOINTS}"
+      - "traefik.http.routers.uptime-private.tls=${TRAEFIK_TLS}"
+      - "traefik.http.routers.uptime-private.service=uptime"
+
+      - "traefik.http.services.uptime.loadbalancer.server.port=${UPTIME_PORT}"
+networks:
+  proxy:
+    external: true

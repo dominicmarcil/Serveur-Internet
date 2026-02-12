@@ -1,0 +1,54 @@
+services:
+  fail2ban:
+    image: ${FAIL2BAN_IMAGE}
+    container_name: fail2ban
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+      - SYS_ADMIN
+    
+    network_mode: host # needed to add iptables rules to the host network
+      
+    volumes:
+      - ./fail2ban-config:/config:z
+      - ./f2b-run:/var/run/fail2ban:z
+
+      - /var/log:/var/log:ro
+      - /var/log/httpd:/remotelogs/apache2:ro
+    restart: unless-stopped
+
+  fail2ban-ui:
+    image: ${FAIL2BAN_UI_IMAGE}
+    container_name: fail2ban-ui
+    privileged: true # needed because the fail2ban-ui container needs to modify the fail2ban config owned by root inside the linuxserver-fail2ban container
+   
+    labels:
+    - "traefik.enable=true"
+
+    # Router
+    - "traefik.http.routers.fail2ban-ui.rule=Host(`${FAIL2BAN_UI_HOST}`)"
+    - "traefik.http.routers.fail2ban-ui.entrypoints=${TRAEFIK_ENTRYPOINTS}"
+    - "traefik.http.routers.fail2ban-ui.tls=${TRAEFIK_TLS}"
+
+    # Middleware d'authentification
+    - "traefik.http.routers.fail2ban-ui.middlewares=tinyauth@docker"
+
+    # Service
+    - "traefik.http.services.fail2ban-ui.loadbalancer.server.port=${FAIL2BAN_UI_PORT}"
+
+
+    volumes:
+      
+      - ./config:/config:Z
+      - /var/log:/var/log:ro
+      - /var/log/httpd:/remotelogs/apache2:ro 
+      - ./fail2ban-config/fail2ban:/etc/fail2ban:z
+      - ./f2b-run:/var/run/fail2ban:z
+
+    restart: unless-stopped
+    networks:
+      - proxy
+
+networks:
+  proxy:
+    external: true

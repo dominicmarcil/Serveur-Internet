@@ -1,0 +1,4 @@
+tls:
+  certificates:
+    - certFile: /etc/letsencrypt/live/dm-computing.ca/fullchain.pem
+      keyFile: /etc/letsencrypt/live/dm-computing.ca/privkey.pem
