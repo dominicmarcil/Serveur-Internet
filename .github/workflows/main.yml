@@ -1,0 +1,182 @@
+name: Deployment Workflow
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+jobs:
+  Deploy-Docker-Infra:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy on remote server
+        uses: appleboy/ssh-action@v1.2.0
+
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
+          # ================= TRAEFIK =================
+          TRAEFIK_IMAGE: ${{ secrets.TRAEFIK_IMAGE }}
+          TRAEFIK_CONTAINER: ${{ secrets.TRAEFIK_CONTAINER }}
+          TRAEFIK_HOST: ${{ secrets.TRAEFIK_HOST }}
+          TRAEFIK_ENTRYPOINTS: ${{ secrets.TRAEFIK_ENTRYPOINTS }}
+          TRAEFIK_TLS: ${{ secrets.TRAEFIK_TLS }}
+          TRAEFIK_WEB_PORT: ${{ secrets.TRAEFIK_WEB_PORT }}
+          TRAEFIK_WEBSECURE_PORT: ${{ secrets.TRAEFIK_WEBSECURE_PORT }}
+
+          # ================= DATABASE =================
+          MARIADB_ROOT_PASSWORD: ${{ secrets.MARIADB_ROOT_PASSWORD }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+
+          # ================= BACKEND =================
+          BACKEND_IMAGE: ${{ secrets.BACKEND_IMAGE }}
+          BACKEND_CONTAINER: ${{ secrets.BACKEND_CONTAINER }}
+          BACKEND_PORT: ${{ secrets.BACKEND_PORT }}
+          BACKEND_HOST: ${{ secrets.BACKEND_HOST }}
+          BACKEND_HOST_PORT: ${{ secrets.BACKEND_HOST_PORT }}
+
+          # ================= WIKI =================
+          WIKI_IMAGE: ${{ secrets.WIKI_IMAGE }}
+          WIKI_HOST: ${{ secrets.WIKI_HOST }}
+          WIKI_PORT: ${{ secrets.WIKI_PORT }}
+
+          # ================= UPTIME KUMA =================
+          UPTIME_IMAGE: ${{ secrets.UPTIME_IMAGE }}
+          UPTIME_HOST: ${{ secrets.UPTIME_HOST }}
+          UPTIME_PORT: ${{ secrets.UPTIME_PORT }}
+          UPTIME_PRIVATE_MIDDLEWARE: ${{ secrets.UPTIME_PRIVATE_MIDDLEWARE }}
+
+          # ================= FAIL2BAN =================
+          FAIL2BAN_IMAGE: ${{ secrets.FAIL2BAN_IMAGE }}
+
+          FAIL2BAN_UI_IMAGE: ${{ secrets.FAIL2BAN_UI_IMAGE }}
+          FAIL2BAN_UI_HOST: ${{ secrets.FAIL2BAN_UI_HOST }}
+          FAIL2BAN_UI_PORT: ${{ secrets.FAIL2BAN_UI_PORT }}
+          # ================= TINYAUTH =================
+          TINYAUTH_IMAGE: ${{ secrets.TINYAUTH_IMAGE }}
+          TINYAUTH_CONTAINER: ${{ secrets.TINYAUTH_CONTAINER }}
+          TINYAUTH_HOST: ${{ secrets.TINYAUTH_HOST }}
+          TINYAUTH_PORT: ${{ secrets.TINYAUTH_PORT }}
+          TINYAUTH_APP_URL: ${{ secrets.TINYAUTH_APP_URL }}
+          TINYAUTH_USERS: ${{ secrets.TINYAUTH_USERS }}
+          
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          OAUTH_WHITELIST: ${{ secrets.OAUTH_WHITELIST }}
+          
+          TRAEFIK_MIDDLEWARE: ${{ secrets.TRAEFIK_MIDDLEWARE }}
+
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          envs: GH_TOKEN,TRAEFIK_IMAGE,TRAEFIK_CONTAINER,TRAEFIK_HOST,TRAEFIK_ENTRYPOINTS,TRAEFIK_TLS,TRAEFIK_WEB_PORT,TRAEFIK_WEBSECURE_PORT,MARIADB_ROOT_PASSWORD,DB_USER,DB_PASSWORD,DB_NAME,BACKEND_IMAGE,BACKEND_CONTAINER,BACKEND_PORT,BACKEND_HOST,BACKEND_HOST_PORT,WIKI_IMAGE,WIKI_HOST,WIKI_PORT,UPTIME_IMAGE,UPTIME_HOST,UPTIME_PORT,UPTIME_PRIVATE_MIDDLEWARE,FAIL2BAN_IMAGE,FAIL2BAN_UI_IMAGE,FAIL2BAN_UI_HOST,FAIL2BAN_UI_PORT,,TINYAUTH_IMAGE,TINYAUTH_CONTAINER,TINYAUTH_HOST,TINYAUTH_PORT,TINYAUTH_APP_URL,TINYAUTH_USERS,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,OAUTH_WHITELIST,TRAEFIK_MIDDLEWARE
+
+
+          script: |
+            set -e
+            cd ~
+
+            # Supprimer ancien déploiement
+            rm -rf ~/srv
+
+            # Cloner repo
+            git clone https://$GH_TOKEN@github.com/dominicmarcil/Serveur-Internet.git
+
+            # Copier dossier srv
+            cp -r Serveur-Internet/srv ~/srv
+
+            # Supprimer repo cloné
+            rm -rf Serveur-Internet
+
+            #######################################
+            # TRAEFIK
+            #######################################
+            cd ~/srv/traefik
+            cat <<EOF > .env
+            TRAEFIK_IMAGE=$TRAEFIK_IMAGE
+            TRAEFIK_CONTAINER=$TRAEFIK_CONTAINER
+            TRAEFIK_HOST=$TRAEFIK_HOST
+            TRAEFIK_ENTRYPOINTS=$TRAEFIK_ENTRYPOINTS
+            TRAEFIK_TLS=$TRAEFIK_TLS
+            TRAEFIK_WEB_PORT=$TRAEFIK_WEB_PORT
+            TRAEFIK_WEBSECURE_PORT=$TRAEFIK_WEBSECURE_PORT
+            EOF
+            docker compose up -d --force-recreate
+
+            #######################################
+            # DATABASE
+            #######################################
+            cd ~/srv/database
+            cat <<EOF > .env
+            MARIADB_ROOT_PASSWORD=$MARIADB_ROOT_PASSWORD
+            DB_USER=$DB_USER
+            DB_PASSWORD=$DB_PASSWORD
+            DB_NAME=$DB_NAME
+            EOF
+            docker compose up -d --force-recreate
+
+            #######################################
+            # BACKEND
+            #######################################
+            cd ~/srv/backend
+            cat <<EOF > .env
+            BACKEND_IMAGE=$BACKEND_IMAGE
+            BACKEND_CONTAINER=$BACKEND_CONTAINER
+            BACKEND_PORT=$BACKEND_PORT
+            BACKEND_HOST=$BACKEND_HOST
+            BACKEND_HOST_PORT=$BACKEND_HOST_PORT
+            DB_HOST=database
+            DB_USER=$DB_USER
+            DB_PASSWORD=$DB_PASSWORD
+            DB_NAME=$DB_NAME
+            EOF
+            docker compose up -d --force-recreate
+
+            #######################################
+            # WIKI
+            #######################################
+            cd ~/srv/wiki
+            cat <<EOF > .env
+            WIKI_IMAGE=$WIKI_IMAGE
+            WIKI_HOST=$WIKI_HOST
+            WIKI_PORT=$WIKI_PORT
+            EOF
+            docker compose up -d --force-recreate
+
+            #######################################
+            # UPTIME KUMA
+            #######################################
+            cd ~/srv/uptime
+            cat <<EOF > .env
+            UPTIME_IMAGE=$UPTIME_IMAGE
+            UPTIME_HOST=$UPTIME_HOST
+            UPTIME_PORT=$UPTIME_PORT
+            UPTIME_PRIVATE_MIDDLEWARE=$UPTIME_PRIVATE_MIDDLEWARE
+            EOF
+            docker compose up -d --force-recreate
+
+            #######################################
+            # FAIL2BAN
+            #######################################
+            cd ~/srv/fail2ban
+            cat <<EOF > .env
+            FAIL2BAN_IMAGE=$FAIL2BAN_IMAGE
+            EOF
+            docker compose up -d --force-recreate
+
+            #######################################
+            # FAIL2BAN UI
+            #######################################
+            cd ~/srv/fail2ban-ui
+            cat <<EOF > .env
+            FAIL2BAN_UI_IMAGE=$FAIL2BAN_UI_IMAGE
+            FAIL2BAN_UI_HOST=$FAIL2BAN_UI_HOST
+            FAIL2BAN_UI_PORT=$FAIL2BAN_UI_PORT
+            EOF
+            docker compose up -d --force-recreate
+
+
